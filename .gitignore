@@ -38,3 +38,10 @@ test/.coverage
 test/data/legacy_serialized.pt
 *.DS_Store
 *~
+
+# Added to prevent huge uploads
+datasets/
+input_csv/
+.venv/
+.python-version
+uv.lock

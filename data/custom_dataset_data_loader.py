@@ -4,8 +4,14 @@ from data.base_data_loader import BaseDataLoader
 
 def CreateDataset(opt):
     dataset = None
-    from data.aligned_dataset import AlignedDataset
-    dataset = AlignedDataset()
+    dataset_mode = getattr(opt, 'dataset_mode', 'aligned')
+
+    if dataset_mode == 'wind':
+        from data.wind_dataset import WindDataset
+        dataset = WindDataset()
+    else:
+        from data.aligned_dataset import AlignedDataset
+        dataset = AlignedDataset()
 
     print("dataset [%s] was created" % (dataset.name()))
     dataset.initialize(opt)

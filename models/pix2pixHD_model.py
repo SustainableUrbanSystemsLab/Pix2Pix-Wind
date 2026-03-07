@@ -69,6 +69,12 @@ class Pix2PixHDModel(BaseModel):
             self.old_lr = opt.lr
 
             # define loss functions
+            # VGG loss requires 3-channel (RGB) output — auto-disable for non-RGB data
+            if opt.output_nc != 3 and not opt.no_vgg_loss:
+                print('WARNING: output_nc=%d is not 3. VGG perceptual loss requires RGB. '
+                      'Auto-disabling VGG loss (--no_vgg_loss).' % opt.output_nc)
+                opt.no_vgg_loss = True
+
             self.loss_filter = self.init_loss_filter(not opt.no_ganFeat_loss, not opt.no_vgg_loss)
             
             self.criterionGAN = networks.GANLoss(use_lsgan=not opt.no_lsgan, tensor=self.Tensor)   
@@ -109,35 +115,41 @@ class Pix2PixHDModel(BaseModel):
             self.optimizer_D = torch.optim.Adam(params, lr=opt.lr, betas=(opt.beta1, 0.999))
 
     def encode_input(self, label_map, inst_map=None, real_image=None, feat_map=None, infer=False):             
+        # Determine target device (CPU or GPU)
+        if len(self.opt.gpu_ids) > 0:
+            device = torch.device('cuda')
+        else:
+            device = torch.device('cpu')
+
         if self.opt.label_nc == 0:
-            input_label = label_map.data.cuda()
+            input_label = label_map.data.to(device)
         else:
             # create one-hot vector for label map 
             size = label_map.size()
             oneHot_size = (size[0], self.opt.label_nc, size[2], size[3])
-            input_label = torch.cuda.FloatTensor(torch.Size(oneHot_size)).zero_()
-            input_label = input_label.scatter_(1, label_map.data.long().cuda(), 1.0)
+            input_label = torch.FloatTensor(torch.Size(oneHot_size)).zero_().to(device)
+            input_label = input_label.scatter_(1, label_map.data.long().to(device), 1.0)
             if self.opt.data_type == 16:
                 input_label = input_label.half()
 
         # get edges from instance map
         if not self.opt.no_instance:
-            inst_map = inst_map.data.cuda()
+            inst_map = inst_map.data.to(device)
             edge_map = self.get_edges(inst_map)
             input_label = torch.cat((input_label, edge_map), dim=1)         
         input_label = Variable(input_label, volatile=infer)
 
         # real images for training
         if real_image is not None:
-            real_image = Variable(real_image.data.cuda())
+            real_image = Variable(real_image.data.to(device))
 
         # instance map for feature encoding
         if self.use_features:
             # get precomputed feature maps
             if self.opt.load_features:
-                feat_map = Variable(feat_map.data.cuda())
+                feat_map = Variable(feat_map.data.to(device))
             if self.opt.label_feat:
-                inst_map = label_map.cuda()
+                inst_map = label_map.to(device)
 
         return input_label, inst_map, real_image, feat_map
 
