@@ -1,144 +1,64 @@
-<img src='imgs/teaser_720.gif' align="right" width=360>
+# 🌬️ Pix2PixHD for Wind Comfort ML
 
-<br><br><br><br>
+This repository contains a heavily stripped-down and specialized version of the original [NVIDIA pix2pixHD](https://github.com/NVIDIA/pix2pixHD) architecture, adapted specifically for **Wind Comfort Machine Learning Research**.
 
-# pix2pixHD
-### [Project](https://tcwang0509.github.io/pix2pixHD/) | [Youtube](https://youtu.be/3AIpPlzM_qs) | [Paper](https://arxiv.org/pdf/1711.11585.pdf) <br>
-Pytorch implementation of our method for high-resolution (e.g. 2048x1024) photorealistic image-to-image translation. It can be used for turning semantic label maps into photo-realistic images or synthesizing portraits from face label maps. <br><br>
-[High-Resolution Image Synthesis and Semantic Manipulation with Conditional GANs](https://tcwang0509.github.io/pix2pixHD/)  
- [Ting-Chun Wang](https://tcwang0509.github.io/)<sup>1</sup>, [Ming-Yu Liu](http://mingyuliu.net/)<sup>1</sup>, [Jun-Yan Zhu](http://people.eecs.berkeley.edu/~junyanz/)<sup>2</sup>, Andrew Tao<sup>1</sup>, [Jan Kautz](http://jankautz.com/)<sup>1</sup>, [Bryan Catanzaro](http://catanzaro.name/)<sup>1</sup>  
- <sup>1</sup>NVIDIA Corporation, <sup>2</sup>UC Berkeley  
- In CVPR 2018.  
+Unlike traditional image-to-image translation (which operates on 3-channel RGB images), this pipeline has been modified to map **8-channel physical geometry inputs** mapping to **1-channel wind deficit predictions**.
 
-## Image-to-image translation at 2k/1k resolution
-- Our label-to-streetview results
-<p align='center'>  
-  <img src='imgs/teaser_label.png' width='400'/>
-  <img src='imgs/teaser_ours.jpg' width='400'/>
-</p>
-- Interactive editing results
-<p align='center'>  
-  <img src='imgs/teaser_style.gif' width='400'/>
-  <img src='imgs/teaser_label.gif' width='400'/>
-</p>
-- Additional streetview results
-<p align='center'>
-  <img src='imgs/cityscapes_1.jpg' width='400'/>
-  <img src='imgs/cityscapes_2.jpg' width='400'/>
-</p>
-<p align='center'>
-  <img src='imgs/cityscapes_3.jpg' width='400'/>
-  <img src='imgs/cityscapes_4.jpg' width='400'/>
-</p>
+## 📊 Dataset Specification
 
-- Label-to-face and interactive editing results
-<p align='center'>
-  <img src='imgs/face1_1.jpg' width='250'/>
-  <img src='imgs/face1_2.jpg' width='250'/>
-  <img src='imgs/face1_3.jpg' width='250'/>
-</p>
-<p align='center'>
-  <img src='imgs/face2_1.jpg' width='250'/>
-  <img src='imgs/face2_2.jpg' width='250'/>
-  <img src='imgs/face2_3.jpg' width='250'/>
-</p>
+The model expects inputs and outputs formatted as `.npy` arrays tightly normalized around `[-1, 1]` for the generator.
 
-- Our editing interface
-<p align='center'>
-  <img src='imgs/city_short.gif' width='330'/>
-  <img src='imgs/face_short.gif' width='450'/>
-</p>
+### Input Channels (8)
+| Idx | Channel | Description |
+| :--- | :--- | :--- |
+| 0 | `SDF` | Signed Distance Field (distance to nearest wall) |
+| 1 | `Bldg_height` | Height of the building at the specific pixel |
+| 2 | `Z_relative` | Height slice of the CFD simulation |
+| 3 | `U_over_Uref` | Background wind ratio (inlet profile) |
+| 4 | `X_local` | X distance from building center |
+| 5 | `Y_local` | Y distance from building center |
+| 6 | `dir_sin` | Sine of Wind Direction |
+| 7 | `dir_cos` | Cosine of Wind Direction |
 
-## Prerequisites
-- Linux or macOS
-- Python 2 or 3
-- NVIDIA GPU (11G memory or larger) + CUDA cuDNN
+### Output Target (1)
+| Idx | Channel | Description |
+| :--- | :--- | :--- |
+| 0 | `mag_U` | Target Wake Deficit |
 
-## Getting Started
-### Installation
-- Install PyTorch and dependencies from http://pytorch.org
-- Install python libraries [dominate](https://github.com/Knio/dominate).
+---
+
+## 🚀 Quickstart & Scripts
+
+We use `uv` for lightning-fast Python dependency management. Make sure `uv` is installed, and the environment will auto-sync.
+
+### 1. Data Preprocessing
+If you have new CFD raw `.csv` results in `input_csv/`, run the preprocessing script to generate the proper 8-channel input and 1-channel output arrays:
 ```bash
-pip install dominate
+uv run preprocess_csv.py
 ```
-- Clone this repo:
+*This will populate the `datasets/wind/` directory and compile a `stats.json` for normalization.*
+
+### 2. Local Training
+To test the model architecture locally (defaulting to CPU if no CUDA is available):
 ```bash
-git clone https://github.com/NVIDIA/pix2pixHD
-cd pix2pixHD
+# Trains for 25 epochs, saving a checkpoint every 5 epochs
+uv run python train.py --name pix2pix --dataset_mode wind --dataroot datasets/wind --input_nc 8 --output_nc 1 --niter 25 --niter_decay 0 --save_epoch_freq 5 --label_nc 0 --no_instance --display_freq 30 --gpu_ids -1 --nThreads 0
 ```
 
-
-### Testing
-- A few example Cityscapes test images are included in the `datasets` folder.
-- Please download the pre-trained Cityscapes model from [here](https://drive.google.com/file/d/1OR-2aEPHOxZKuoOV34DvQxreqGCSLcW9/view?usp=drive_link) (google drive link), and put it under `./checkpoints/label2city_1024p/`
-- Test the model (`bash ./scripts/test_1024p.sh`):
+### 3. Training on HPC (PACE)
+To submit a full-scale job on an HPC Slurm cluster (leveraging H200 GPUs):
 ```bash
-#!./scripts/test_1024p.sh
-python test.py --name label2city_1024p --netG local --ngf 32 --resize_or_crop none
+sbatch slurm/train_PACE.sbatch
 ```
-The test results will be saved to a html file here: `./results/label2city_1024p/test_latest/index.html`.
 
-More example scripts can be found in the `scripts` directory.
-
-
-### Dataset
-- We use the Cityscapes dataset. To train a model on the full dataset, please download it from the [official website](https://www.cityscapes-dataset.com/) (registration required).
-After downloading, please put it under the `datasets` folder in the same way the example images are provided.
-
-
-### Training
-- Train a model at 1024 x 512 resolution (`bash ./scripts/train_512p.sh`):
+### 4. Visualizing Progress
+To generate a side-by-side comparison GIF (Ground Truth vs. Model Prediction) of your training progress, run:
 ```bash
-#!./scripts/train_512p.sh
-python train.py --name label2city_512p
+uv run python make_gif.py
 ```
-- To view training results, please checkout intermediate results in `./checkpoints/label2city_512p/web/index.html`.
-If you have tensorflow installed, you can see tensorboard logs in `./checkpoints/label2city_512p/logs` by adding `--tf_log` to the training scripts.
+*Outputs to `training_progress_comparison.gif`.*
 
-### Multi-GPU training
-- Train a model using multiple GPUs (`bash ./scripts/train_512p_multigpu.sh`):
-```bash
-#!./scripts/train_512p_multigpu.sh
-python train.py --name label2city_512p --batchSize 8 --gpu_ids 0,1,2,3,4,5,6,7
-```
-Note: this is not tested and we trained our model using single GPU only. Please use at your own discretion.
+---
 
-### Training with Automatic Mixed Precision (AMP) for faster speed
-- To train with mixed precision support, please first install apex from: https://github.com/NVIDIA/apex
-- You can then train the model by adding `--fp16`. For example,
-```bash
-#!./scripts/train_512p_fp16.sh
-python -m torch.distributed.launch train.py --name label2city_512p --fp16
-```
-In our test case, it trains about 80% faster with AMP on a Volta machine.
-
-### Training at full resolution
-- To train the images at full resolution (2048 x 1024) requires a GPU with 24G memory (`bash ./scripts/train_1024p_24G.sh`), or 16G memory if using mixed precision (AMP).
-- If only GPUs with 12G memory are available, please use the 12G script (`bash ./scripts/train_1024p_12G.sh`), which will crop the images during training. Performance is not guaranteed using this script.
-
-### Training with your own dataset
-- If you want to train with your own dataset, please generate label maps which are one-channel whose pixel values correspond to the object labels (i.e. 0,1,...,N-1, where N is the number of labels). This is because we need to generate one-hot vectors from the label maps. Please also specity `--label_nc N` during both training and testing.
-- If your input is not a label map, please just specify `--label_nc 0` which will directly use the RGB colors as input. The folders should then be named `train_A`, `train_B` instead of `train_label`, `train_img`, where the goal is to translate images from A to B.
-- If you don't have instance maps or don't want to use them, please specify `--no_instance`.
-- The default setting for preprocessing is `scale_width`, which will scale the width of all training images to `opt.loadSize` (1024) while keeping the aspect ratio. If you want a different setting, please change it by using the `--resize_or_crop` option. For example, `scale_width_and_crop` first resizes the image to have width `opt.loadSize` and then does random cropping of size `(opt.fineSize, opt.fineSize)`. `crop` skips the resizing step and only performs random cropping. If you don't want any preprocessing, please specify `none`, which will do nothing other than making sure the image is divisible by 32.
-
-## More Training/Test Details
-- Flags: see `options/train_options.py` and `options/base_options.py` for all the training flags; see `options/test_options.py` and `options/base_options.py` for all the test flags.
-- Instance map: we take in both label maps and instance maps as input. If you don't want to use instance maps, please specify the flag `--no_instance`.
-
-
-## Citation
-
-If you find this useful for your research, please use the following.
-
-```
-@inproceedings{wang2018pix2pixHD,
-  title={High-Resolution Image Synthesis and Semantic Manipulation with Conditional GANs},
-  author={Ting-Chun Wang and Ming-Yu Liu and Jun-Yan Zhu and Andrew Tao and Jan Kautz and Bryan Catanzaro},  
-  booktitle={Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition},
-  year={2018}
-}
-```
-
-## Acknowledgments
-This code borrows heavily from [pytorch-CycleGAN-and-pix2pix](https://github.com/junyanz/pytorch-CycleGAN-and-pix2pix).
+## 🧹 Repository Cleanup
+*Note: All legacy dataloaders for Cityscapes/Faces, unused TensorRT inference endpoints, and 1024p bash scripts have been purged to keep this repository clean and strictly focused on wind engineering datasets.*
