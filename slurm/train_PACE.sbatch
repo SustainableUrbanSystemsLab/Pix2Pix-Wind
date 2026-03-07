@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH -J wind_p2p
-#SBATCH -A YOUR_ACCOUNT_NAME_HERE
+#SBATCH -A gts-pkastner3
 #SBATCH -N 1
 #SBATCH --ntasks-per-node=1
 #SBATCH --cpus-per-task=16
