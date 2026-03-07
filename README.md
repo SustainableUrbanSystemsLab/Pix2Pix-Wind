@@ -1,10 +1,10 @@
-# 🌬️ Pix2PixHD for Wind Comfort ML
+Pix2PixHD for Wind Comfort ML
 
 This repository contains a heavily stripped-down and specialized version of the original [NVIDIA pix2pixHD](https://github.com/NVIDIA/pix2pixHD) architecture, adapted specifically for **Wind Comfort Machine Learning Research**.
 
 Unlike traditional image-to-image translation (which operates on 3-channel RGB images), this pipeline has been modified to map **8-channel physical geometry inputs** mapping to **1-channel wind deficit predictions**.
 
-## 📊 Dataset Specification
+## Dataset Specification
 
 The model expects inputs and outputs formatted as `.npy` arrays tightly normalized around `[-1, 1]` for the generator.
 
@@ -27,7 +27,7 @@ The model expects inputs and outputs formatted as `.npy` arrays tightly normaliz
 
 ---
 
-## 🚀 Quickstart & Scripts
+## Quickstart & Scripts
 
 We use `uv` for lightning-fast Python dependency management. Make sure `uv` is installed, and the environment will auto-sync.
 
@@ -60,5 +60,6 @@ uv run python make_gif.py
 
 ---
 
-## 🧹 Repository Cleanup
+## Repository Cleanup
 *Note: All legacy dataloaders for Cityscapes/Faces, unused TensorRT inference endpoints, and 1024p bash scripts have been purged to keep this repository clean and strictly focused on wind engineering datasets.*
+
