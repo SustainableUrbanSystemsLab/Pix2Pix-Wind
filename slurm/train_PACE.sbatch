@@ -1,12 +1,12 @@
 #!/bin/bash
-#SBATCH -J wind_p2p_fno
+#SBATCH -J wind_p2p
 #SBATCH -N 1
 #SBATCH --ntasks-per-node=1
 #SBATCH --cpus-per-task=16
 #SBATCH --mem=250G
 #SBATCH -t 11:50:00
-#SBATCH -o logs/wind_fno_%j.out
-#SBATCH -e logs/wind_fno_%j.err
+#SBATCH -o logs/wind_p2p_%j.out
+#SBATCH -e logs/wind_p2p_%j.err
 #SBATCH --gres=gpu:H200:1
 
 echo "Job started on $(date)"
@@ -46,9 +46,9 @@ if [ ! -d "datasets/wind/train_A" ]; then
 fi
 
 # ── Step 2: Train pix2pixHD on wind data ──────────────────────────────
-echo "Starting pix2pixHD training for Wind Comfort (FNO Format)..."
+echo "Starting pix2pixHD training for Wind Comfort (Pix2Pix Format)..."
 uv run python train.py \
-    --name wind_pix2pixHD_fno \
+    --name wind_pix2pixHD_p2p \
     --dataroot datasets/wind \
     --dataset_mode wind \
     --label_nc 0 \
