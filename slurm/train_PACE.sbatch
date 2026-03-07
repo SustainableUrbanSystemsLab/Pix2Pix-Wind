@@ -3,7 +3,7 @@
 #SBATCH -A gts-pkastner3
 #SBATCH -N 1
 #SBATCH --ntasks-per-node=1
-#SBATCH --cpus-per-task=16
+#SBATCH --cpus-per-task=8
 #SBATCH --mem=250G
 #SBATCH -t 11:50:00
 #SBATCH -o logs/wind_p2p_%j.out
