@@ -58,9 +58,10 @@ uv run python train.py \
     --no_vgg_loss \
     --resize_or_crop none \
     --batchSize ${BATCH_SIZE:-4} \
-    --niter ${NITER:-100} \
-    --niter_decay ${NITER_DECAY:-100} \
+    --niter ${NITER:-500} \
+    --niter_decay ${NITER_DECAY:-0} \
     --lr ${LR:-0.0002} \
-    --save_epoch_freq 10
+    --save_epoch_freq 5 \
+    --display_freq 1175
 
 echo "Job finished on $(date)"
