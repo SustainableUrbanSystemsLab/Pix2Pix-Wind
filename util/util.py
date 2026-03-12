@@ -21,10 +21,15 @@ def tensor2im(image_tensor, imtype=np.uint8, normalize=True):
     image_numpy = np.clip(image_numpy, 0, 255)
     # Handle multi-channel outputs (e.g. wind comfort data with >3 channels)
     if image_numpy.shape[2] == 1:
-        image_numpy = image_numpy[:, :, 0]
+        gray = image_numpy[:, :, 0]
+        import matplotlib.cm as cm
+        # Normalize back to 0-1 for colormap, apply viridis, and scale to 0-255 RGB
+        image_numpy = cm.viridis(gray / 255.0)[:, :, :3] * 255.0
     elif image_numpy.shape[2] > 3:
-        # For non-RGB multi-channel data, show first channel as grayscale
-        image_numpy = image_numpy[:, :, 0]
+        # For non-RGB multi-channel data, show first channel colored
+        gray = image_numpy[:, :, 0]
+        import matplotlib.cm as cm
+        image_numpy = cm.viridis(gray / 255.0)[:, :, :3] * 255.0
     return image_numpy.astype(imtype)
 
 # Converts a one-hot tensor into a colorful label map

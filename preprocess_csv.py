@@ -100,7 +100,8 @@ def main():
 
     if not gt_csvs:
         print(f"ERROR: No CSV files found matching {pattern}")
-        return
+        import sys
+        sys.exit(1)
 
     print(f"Found {len(gt_csvs)} ground-truth CSV files")
 

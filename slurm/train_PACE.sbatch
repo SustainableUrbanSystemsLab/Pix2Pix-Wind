@@ -39,11 +39,22 @@ uv sync
 
 # ── Step 1: Preprocess CSVs if dataset doesn't exist ──────────────────
 if [ ! -d "datasets/wind/train_A" ]; then
+    if [ ! -d "input_csv" ]; then
+        echo "ERROR: Neither 'datasets/wind/train_A' nor 'input_csv' were found."
+        echo "Please upload either your raw CSV files to 'input_csv/' or the preprocessed dataset to 'datasets/' before training."
+        exit 1
+    fi
     echo "Preprocessing CSV data..."
     uv run python preprocess_csv.py \
         --input_dir input_csv \
         --output_dir datasets/wind \
         --test_angles 270 315
+    
+    # Verify it actually produced data
+    if [ ! -d "datasets/wind/train_A" ]; then
+        echo "ERROR: Preprocessing failed to generate datasets/wind/train_A."
+        exit 1
+    fi
 fi
 
 # ── Step 2: Train pix2pixHD on wind data ──────────────────────────────

@@ -35,6 +35,9 @@ class WindDataset(BaseDataset):
             ])
 
         self.dataset_size = len(self.A_paths)
+        if self.dataset_size == 0:
+            raise ValueError(f"No .npy files found in {dir_A}. The dataset directory might be empty. "
+                             "Please ensure your data was properly uploaded or preprocessed.")
 
         # Load normalization statistics
         stats_path = opt.wind_stats if opt.wind_stats else os.path.join(opt.dataroot, "stats.json")
