@@ -16,31 +16,48 @@ class WindDataset(BaseDataset):
     def initialize(self, opt):
         self.opt = opt
         self.root = opt.dataroot
-
-        # Determine directory names
-        dir_A = os.path.join(opt.dataroot, opt.phase + "_A")
-        dir_B = os.path.join(opt.dataroot, opt.phase + "_B")
-
-        # Collect .npy file paths
-        self.A_paths = sorted([
-            os.path.join(dir_A, f) for f in os.listdir(dir_A)
-            if f.endswith(".npy")
-        ])
-
-        self.B_paths = []
-        if opt.isTrain or os.path.isdir(dir_B):
-            self.B_paths = sorted([
-                os.path.join(dir_B, f) for f in os.listdir(dir_B)
+        # Support loading directly from a single .npz file or from a directory of .npy files
+        self.is_npz = self.root.endswith('.npz') and os.path.isfile(self.root)
+        
+        if self.is_npz:
+            print(f"Loading from NPZ archive: {self.root}")
+            self.npz_data = np.load(self.root)
+            # Find all keys belonging to this phase (e.g., 'train_A_0', 'train_A_1')
+            self.A_keys = sorted([k for k in self.npz_data.files if k.startswith(f"{opt.phase}_A_")])
+            self.B_keys = sorted([k for k in self.npz_data.files if k.startswith(f"{opt.phase}_B_")])
+            self.dataset_size = len(self.A_keys)
+        else:
+            # Determine directory names
+            dir_A = os.path.join(opt.dataroot, opt.phase + "_A")
+            dir_B = os.path.join(opt.dataroot, opt.phase + "_B")
+    
+            # Collect .npy file paths
+            self.A_paths = sorted([
+                os.path.join(dir_A, f) for f in os.listdir(dir_A)
                 if f.endswith(".npy")
-            ])
+            ]) if os.path.isdir(dir_A) else []
+    
+            self.B_paths = []
+            if opt.isTrain or os.path.isdir(dir_B):
+                self.B_paths = sorted([
+                    os.path.join(dir_B, f) for f in os.listdir(dir_B)
+                    if f.endswith(".npy")
+                ]) if os.path.isdir(dir_B) else []
+    
+            self.dataset_size = len(self.A_paths)
 
-        self.dataset_size = len(self.A_paths)
         if self.dataset_size == 0:
-            raise ValueError(f"No .npy files found in {dir_A}. The dataset directory might be empty. "
-                             "Please ensure your data was properly uploaded or preprocessed.")
+            if self.is_npz:
+                 raise ValueError(f"No arrays found for phase '{opt.phase}' in {self.root}. Check the .npz keys.")
+            else:
+                 raise ValueError(f"No .npy files found in {dir_A}. The dataset directory might be empty. "
+                                  "Please ensure your data was properly uploaded or preprocessed.")
 
         # Load normalization statistics
-        stats_path = opt.wind_stats if opt.wind_stats else os.path.join(opt.dataroot, "stats.json")
+        stats_path = opt.wind_stats if opt.wind_stats else (
+            os.path.join(os.path.dirname(self.root), "stats.json") if self.is_npz 
+            else os.path.join(opt.dataroot, "stats.json")
+        )
         if os.path.exists(stats_path):
             with open(stats_path, "r") as f:
                 stats = json.load(f)
@@ -77,17 +94,29 @@ class WindDataset(BaseDataset):
         return arr
 
     def __getitem__(self, index):
-        # Load input (A) array
-        A_path = self.A_paths[index]
-        A = np.load(A_path)  # shape (H, W, C_in)
-
-        # Load output (B) array
-        B_tensor = 0
-        if len(self.B_paths) > 0:
-            B_path = self.B_paths[index]
-            B = np.load(B_path)  # shape (H, W, C_out)
+        if self.is_npz:
+            A_key = self.A_keys[index]
+            A = self.npz_data[A_key] # shape (H, W, C_in)
+            A_path = f"{self.root}::{A_key}"
+            
+            B_tensor = 0
+            if len(self.B_keys) > 0:
+                B_key = self.B_keys[index]
+                B = self.npz_data[B_key]
+            else:
+                B = None
         else:
-            B = None
+            # Load input (A) array
+            A_path = self.A_paths[index]
+            A = np.load(A_path)  # shape (H, W, C_in)
+    
+            # Load output (B) array
+            B_tensor = 0
+            if len(self.B_paths) > 0:
+                B_path = self.B_paths[index]
+                B = np.load(B_path)  # shape (H, W, C_out)
+            else:
+                B = None
 
         # Data augmentation: random horizontal flip
         if self.opt.isTrain and not self.opt.no_flip:
@@ -129,7 +158,8 @@ class WindDataset(BaseDataset):
         return input_dict
 
     def __len__(self):
-        return len(self.A_paths) // max(self.opt.batchSize, 1) * max(self.opt.batchSize, 1)
+        sz = len(self.A_keys) if self.is_npz else len(self.A_paths)
+        return sz // max(self.opt.batchSize, 1) * max(self.opt.batchSize, 1)
 
     def name(self):
         return 'WindDataset'

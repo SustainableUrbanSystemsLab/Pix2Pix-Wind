@@ -58,14 +58,17 @@ def main():
         })
         
         # Visualization
-        axes[i][0].imshow(gt[..., 0], cmap='viridis')
+        im0 = axes[i][0].imshow(gt[..., 0], cmap='viridis', vmin=0, vmax=1)
         axes[i][0].set_title(f"GT (Angle {angle})")
+        fig.colorbar(im0, ax=axes[i][0])
         
-        axes[i][1].imshow(std_pred[..., 0], cmap='viridis')
+        im1 = axes[i][1].imshow(std_pred[..., 0], cmap='viridis', vmin=0, vmax=1)
         axes[i][1].set_title(f"Standard\nMAE: {mae_std:.4f}")
+        fig.colorbar(im1, ax=axes[i][1])
         
-        axes[i][2].imshow(did_pred[..., 0], cmap='viridis')
+        im2 = axes[i][2].imshow(did_pred[..., 0], cmap='viridis', vmin=0, vmax=1)
         axes[i][2].set_title(f"DID\nMAE: {mae_did:.4f}")
+        fig.colorbar(im2, ax=axes[i][2])
 
     plt.tight_layout()
     plt.savefig(args.output_img)

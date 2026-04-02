@@ -53,7 +53,7 @@ def save_epoch_visuals(epoch, input_tensor, fake_tensor, real_tensor, opt, chann
         for ch in range(n_cols):
             ax = axes[row_idx, ch] if n_cols > 1 else axes[row_idx]
             if ch < n_ch:
-                im = ax.imshow(data[ch], cmap='viridis', aspect='equal')
+                im = ax.imshow(data[ch], cmap='viridis', aspect='equal', vmin=0, vmax=1)
                 plt.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
                 if row_idx == 0:
                     ax.set_title(f'Input ch{ch}', fontsize=10)

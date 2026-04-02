@@ -1,28 +1,42 @@
 import zipfile
 import re
+import numpy as np
 
 def peek_npz_shape(npz_path):
-    print(f"Inspecting: {npz_path}")
-    with zipfile.ZipFile(npz_path, 'r') as z:
-        for name in z.namelist():
-            if not name.endswith('.npy'):
-                continue
-            with z.open(name) as f:
-                # Read the first 1KB which definitely contains the header
-                header_bytes = f.read(1024)
-                
-                # NumPy headers contain a string representation of a Python dict like:
-                # {'descr': '<f4', 'fortran_order': False, 'shape': (1000, 2016, 2016), }
-                # Convert bytes to string (ignoring decode errors for the actual binary data after the header)
-                header_str = header_bytes.decode('ascii', errors='ignore')
-                
-                # Extract the dictionary string
-                match = re.search(r"\{'descr':.*?\}", header_str)
-                if match:
-                    print(f"\n--- {name} ---")
-                    print(match.group(0))
-                else:
-                    print(f"Could not find valid numpy dictionary header in {name}")
+    print(f"\nInspecting headers: {npz_path}")
+    try:
+        with zipfile.ZipFile(npz_path, 'r') as z:
+            for name in z.namelist()[:5]: # Peek at first few files
+                if not name.endswith('.npy'):
+                    continue
+                try:
+                    with z.open(name) as f:
+                        header_bytes = f.read(1024)
+                        header_str = header_bytes.decode('ascii', errors='ignore')
+                        match = re.search(r"\{'descr':.*?\}", header_str, re.DOTALL)
+                        if match:
+                            print(f"--- {name} ---")
+                            print(match.group(0))
+                        else:
+                            print(f"Could not find valid numpy dictionary header in {name}")
+                except Exception as e:
+                    print(f"Error reading {name}: {e}")
+    except Exception as e:
+        print(f"Error opening ZIP {npz_path}: {e}")
+
+def list_keys(npz_path):
+    print(f"\nLoading metadata: {npz_path}")
+    try:
+        data = np.load(npz_path)
+        keys = list(data.keys())
+        print(f"Total keys: {len(keys)}")
+        print(f"Sample keys: {keys[:10]}")
+    except Exception as e:
+        print(f"Error loading {npz_path}: {e}")
 
 if __name__ == '__main__':
-    peek_npz_shape(r"C:\Users\zeyuj\Downloads\expanded_dataset_1000.npz")
+    for path in [r"C:\Users\zeyuj\Downloads\expanded_dataset_500.npz", 
+                 r"C:\Users\zeyuj\Downloads\expanded_dataset_1000.npz"]:
+        print("\n" + "="*60)
+        list_keys(path)
+        peek_npz_shape(path)
