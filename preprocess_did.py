@@ -27,7 +27,7 @@ INPUT_COLS = ["SDF", "Bldg_height", "Z_relative", "U_over_Uref", "X_local", "Y_l
 OUTPUT_COLS = ["mag_U"]
 DID_COLS = [f"DID_{i}" for i in range(8)]
 
-def extract_angle(filename: str) -> int | None:
+def extract_angle(filename: str): #i removed "-> int | None"
     m = re.search(r"ML_FormFlux_1_(\d+)\.csv$", os.path.basename(filename))
     return int(m.group(1)) if m else None
 

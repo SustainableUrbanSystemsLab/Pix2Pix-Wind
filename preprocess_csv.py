@@ -22,7 +22,7 @@ INPUT_COLS = ["SDF", "Bldg_height", "Z_relative", "U_over_Uref", "X_local", "Y_l
 OUTPUT_COLS = ["mag_U"]
 
 
-def extract_angle(filename: str) -> int | None:
+def extract_angle(filename: str): #deleted -> int | None
     """Extract the wind angle from a filename like ML_FormFlux_1_45.csv."""
     m = re.search(r"ML_FormFlux_1_(\d+)\.csv$", os.path.basename(filename))
     return int(m.group(1)) if m else None

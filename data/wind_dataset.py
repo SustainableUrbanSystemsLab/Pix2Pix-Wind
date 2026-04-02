@@ -124,6 +124,40 @@ class WindDataset(BaseDataset):
                 A = np.flip(A, axis=1).copy()
                 if B is not None:
                     B = np.flip(B, axis=1).copy()
+                
+                # Fix: Negate X-components to reflect physical horizontal flip
+                A[:, :, 4] *= -1.0  # X_local
+                A[:, :, 6] *= -1.0  # dir_sin
+                
+                # Fix: Swap left/right 45-degree angle DID sectors if 16-channel DID data is used (this stops hallucinated wind from the left/right)
+                if A.shape[-1] == 16:
+                    temp_A = A.copy()
+                    A[:, :, 8] = temp_A[:, :, 12]  # East(0) <-> West(4)
+                    A[:, :, 12] = temp_A[:, :, 8]
+                    A[:, :, 9] = temp_A[:, :, 11]  # NE(1) <-> NW(3)
+                    A[:, :, 11] = temp_A[:, :, 9]
+                    A[:, :, 15] = temp_A[:, :, 13] # SE(7) <-> SW(5)
+                    A[:, :, 13] = temp_A[:, :, 15]
+
+            # Data augmentation: random vertical flip
+            if np.random.random() > 0.5:
+                A = np.flip(A, axis=0).copy()
+                if B is not None:
+                    B = np.flip(B, axis=0).copy()
+                
+                # Fix: Negate Y-components to reflect physical vertical flip
+                A[:, :, 5] *= -1.0  # Y_local
+                A[:, :, 7] *= -1.0  # dir_cos
+                
+                # Fix: Swap top/bottom DID sectors (this stops hallucinated wind from the top/bottom)
+                if A.shape[-1] == 16:
+                    temp_A = A.copy()
+                    A[:, :, 10] = temp_A[:, :, 14] # North(2) <-> South(6)
+                    A[:, :, 14] = temp_A[:, :, 10]
+                    A[:, :, 9]  = temp_A[:, :, 15] # NE(1) <-> SE(7)
+                    A[:, :, 15] = temp_A[:, :, 9]
+                    A[:, :, 11] = temp_A[:, :, 13] # NW(3) <-> SW(5)
+                    A[:, :, 13] = temp_A[:, :, 11]
 
         # Normalize to [-1, 1]
         A = self._normalize(A, self.input_min, self.input_max)
