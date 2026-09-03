@@ -159,18 +159,21 @@ class WindDataset(BaseDataset):
                     A[:, :, 11] = temp_A[:, :, 13] # NW(3) <-> SW(5)
                     A[:, :, 13] = temp_A[:, :, 11]
 
-        # Normalize to [-1, 1]
-        A = self._normalize(A, self.input_min, self.input_max)
-        if B is not None:
-            B = self._normalize(B, self.output_min, self.output_max)
-
-        # Pad to make dimensions divisible by 2^n_downsample_global
+        # Pad to make dimensions divisible by 2^n_downsample_global. Pad BEFORE
+        # normalizing: a raw 0 is exactly what out-of-domain cells hold, so the pad
+        # band normalizes to the same value; padding after normalization put the
+        # mid-range value (SDF -205 m, Bldg_height 76 m, mag_U 1.87) in the band.
         base = 2 ** self.opt.n_downsample_global
         if self.opt.netG == 'local':
             base *= (2 ** self.opt.n_local_enhancers)
         A = self._pad_to_power_of_2(A, int(base))
         if B is not None:
             B = self._pad_to_power_of_2(B, int(base))
+
+        # Normalize to [-1, 1]
+        A = self._normalize(A, self.input_min, self.input_max)
+        if B is not None:
+            B = self._normalize(B, self.output_min, self.output_max)
 
         # Convert to tensors: (H, W, C) → (C, H, W)
         A_tensor = torch.from_numpy(A.transpose(2, 0, 1)).float()
